@@ -33,8 +33,8 @@ const handleChoice = async (choice: string) => {
                 try {
                     wallet = new BitcoinWallet(mnemonic);
                     console.log('Wallet imported successfully!');
-                } catch (error) {
-                    console.error('Error importing wallet:', error.message);
+                } catch (error: unknown) {
+                    console.error('Error importing wallet:', error instanceof Error ? error.message : String(error));
                 }
                 displayMenu();
             });
