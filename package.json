@@ -12,7 +12,8 @@
     "lint": "eslint . --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "test:coverage": "jest --coverage",
-    "build:watch": "tsc -w"
+    "build:watch": "tsc -w",
+    "example": "ts-node examples/basic-wallet.ts"
   },
   "dependencies": {
     "bip32": "^4.0.0",
