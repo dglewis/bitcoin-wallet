@@ -1,6 +1,7 @@
 import { BitcoinWallet } from '../wallet';
 import * as bip39 from 'bip39';
 import { BlockchainService } from '../blockchain';
+import { config } from '../config';
 
 // Mock BlockchainService
 jest.mock('../blockchain');
@@ -92,7 +93,7 @@ describe('BitcoinWallet', () => {
     test('should reject invalid fee rate', async () => {
         const validAddress = 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4';
         await expect(wallet.sendBitcoin(validAddress, 50000, 0))
-            .rejects.toThrow(/fee rate/);
+            .rejects.toThrow(`Fee rate must be between ${config.minFeeRate} and ${config.maxFeeRate} sat/vB`);
     });
 
     test('should get transaction history', async () => {

@@ -87,7 +87,9 @@ export class BitcoinWallet {
 
     async sendBitcoin(toAddress: string, amount: number, feeRate: number): Promise<string> {
         // Input validation
-        if (!bitcoin.address.toOutputScript(toAddress, this.network)) {
+        try {
+            bitcoin.address.toOutputScript(toAddress, this.network);
+        } catch (error) {
             throw new Error('Invalid Bitcoin address');
         }
 
