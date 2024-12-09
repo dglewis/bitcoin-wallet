@@ -3,6 +3,7 @@ import { BIP32Factory } from 'bip32';
 import * as bitcoin from 'bitcoinjs-lib';
 import * as ecc from 'tiny-secp256k1';
 import { BlockchainService } from './blockchain';
+import { config } from './config';
 
 const bip32 = BIP32Factory(ecc);
 
@@ -85,6 +86,24 @@ export class BitcoinWallet {
     }
 
     async sendBitcoin(toAddress: string, amount: number, feeRate: number): Promise<string> {
+        // Input validation
+        if (!bitcoin.address.toOutputScript(toAddress, this.network)) {
+            throw new Error('Invalid Bitcoin address');
+        }
+
+        if (amount <= config.dustLimit) {
+            throw new Error(`Amount must be greater than dust limit (${config.dustLimit} satoshis)`);
+        }
+
+        if (feeRate < config.minFeeRate || feeRate > config.maxFeeRate) {
+            throw new Error(`Fee rate must be between ${config.minFeeRate} and ${config.maxFeeRate} sat/vB`);
+        }
+
+        const balance = await this.getBalance();
+        if (amount > balance.confirmed) {
+            throw new Error('Insufficient funds');
+        }
+
         const utxos = await this.blockchain.getUTXOs(await this.getSegWitAddress(0));
         const psbt = new bitcoin.Psbt({ network: this.network });
 
