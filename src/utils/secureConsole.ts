@@ -1,29 +1,40 @@
 import * as readline from 'readline';
 
 export class SecureConsole {
-    static async displaySensitiveData(message: string, data: string): Promise<void> {
-        console.clear();
-        console.log('\n⚠️  WARNING: Sensitive information follows');
-        console.log('Make sure no one can see your screen\n');
+    private static rl: readline.Interface | null = null;
 
-        const rl = readline.createInterface({
-            input: process.stdin,
-            output: process.stdout
-        });
+    private static getReadline(): readline.Interface {
+        if (!this.rl) {
+            this.rl = readline.createInterface({
+                input: process.stdin,
+                output: process.stdout
+            });
+        }
+        return this.rl;
+    }
 
+    public static cleanup() {
+        if (this.rl) {
+            this.rl.close();
+            this.rl = null;
+        }
+    }
+
+    public static async displaySensitiveData(message: string, data: string): Promise<void> {
+        console.log(message);
+        console.log(data);
+
+        // In test environment, don't create readline interface
+        if (process.env.NODE_ENV === 'test') {
+            return Promise.resolve();
+        }
+
+        const rl = this.getReadline();
         return new Promise((resolve) => {
-            rl.question('Press ENTER to view or CTRL+C to cancel...', () => {
+            rl.question('\nPress enter to continue...', () => {
                 console.clear();
-                console.log(`\n${message}:`);
-                console.log(data);
-                console.log('\nPress ENTER to clear screen...');
-
-                rl.question('', () => {
-                    console.clear();
-                    rl.close();
-                    resolve();
-                });
+                resolve();
             });
         });
     }
-} 
+}

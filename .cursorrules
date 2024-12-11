@@ -1,0 +1,1 @@
+Tests should adapt to the application and not force changes that disrupt its functionality. Refactoring the application should only happen if it improves the app itself, such as enhancing modularity or maintainability, and not solely to accommodate testing.

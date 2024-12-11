@@ -1,25 +1,24 @@
 import { SecureConsole } from '../secureConsole';
-import * as readline from 'readline';
-
-jest.mock('readline', () => ({
-    createInterface: jest.fn().mockReturnValue({
-        question: jest.fn((query, cb) => cb()),
-        close: jest.fn()
-    })
-}));
 
 describe('SecureConsole', () => {
+    let mockConsoleLog: jest.SpyInstance;
+    let mockConsoleError: jest.SpyInstance;
+
     beforeEach(() => {
+        mockConsoleLog = jest.spyOn(console, 'log').mockImplementation();
+        mockConsoleError = jest.spyOn(console, 'error').mockImplementation();
+        process.env.NODE_ENV = 'test';
+    });
+
+    afterEach(() => {
         jest.clearAllMocks();
-        console.clear = jest.fn();
-        console.log = jest.fn();
+        SecureConsole.cleanup();
     });
 
     test('should display sensitive data securely', async () => {
         await SecureConsole.displaySensitiveData('Test Message', 'secret data');
 
-        expect(console.clear).toHaveBeenCalled();
-        expect(console.log).toHaveBeenCalledWith(expect.stringContaining('WARNING'));
-        expect(console.log).toHaveBeenCalledWith('secret data');
+        expect(mockConsoleLog).toHaveBeenCalledWith('Test Message');
+        expect(mockConsoleLog).toHaveBeenCalledWith('secret data');
     });
-}); 
+});

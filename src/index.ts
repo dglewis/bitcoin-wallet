@@ -3,10 +3,23 @@ import * as readline from 'readline';
 import { SecureConsole } from './utils/secureConsole';
 import { handleError } from './utils/errorHandler';
 
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
+export let rl: readline.Interface | null = null;
+
+/**
+ * Initialize the readline interface for CLI input/output.
+ * Note: When testing with Jest, you might see a TTYWRAP open handle warning.
+ * This is a known Jest issue with process.stdin/stdout and doesn't indicate a real resource leak.
+ * We properly clean up the readline interface in the cleanup() function and through process handlers.
+ */
+function initReadline() {
+    if (!rl) {
+        rl = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout,
+        });
+    }
+    return rl!;
+}
 
 let wallet: BitcoinWallet;
 
@@ -23,6 +36,11 @@ const displayMenu = () => {
 };
 
 const handleChoice = async (choice: string) => {
+    const readline = rl;
+    if (!readline) {
+        throw new Error('Readline interface not initialized');
+    }
+
     try {
         switch (choice) {
             case '1':
@@ -36,7 +54,7 @@ const handleChoice = async (choice: string) => {
 
             case '2':
                 return new Promise((resolve) => {
-                    rl.question('\nEnter your mnemonic phrase: ', async (mnemonic) => {
+                    readline.question('\nEnter your mnemonic phrase: ', async (mnemonic) => {
                         try {
                             wallet = new BitcoinWallet(mnemonic);
                             console.log('Wallet imported successfully!');
@@ -63,7 +81,7 @@ const handleChoice = async (choice: string) => {
                     console.log('Please create or import a wallet first.');
                 } else {
                     return new Promise((resolve) => {
-                        rl.question('\nEnter address index (default 0): ', async (index) => {
+                        readline.question('\nEnter address index (default 0): ', async (index) => {
                             try {
                                 const parsedIndex = parseInt(index) || 0;
                                 if (parsedIndex < 0) throw new Error('Index must be non-negative');
@@ -83,7 +101,7 @@ const handleChoice = async (choice: string) => {
                     console.log('Please create or import a wallet first.');
                 } else {
                     return new Promise((resolve) => {
-                        rl.question('\nEnter address index (default 0): ', async (index) => {
+                        readline.question('\nEnter address index (default 0): ', async (index) => {
                             try {
                                 const parsedIndex = parseInt(index) || 0;
                                 if (parsedIndex < 0) throw new Error('Index must be non-negative');
@@ -99,9 +117,8 @@ const handleChoice = async (choice: string) => {
                 break;
 
             case '6':
-                console.clear();
-                console.log('\nGoodbye!');
-                rl.close();
+                console.log('Goodbye!');
+                cleanup();
                 process.exit(0);
                 break;
 
@@ -115,7 +132,35 @@ const handleChoice = async (choice: string) => {
     }
 };
 
-// Start the CLI
-console.clear();
-displayMenu();
-rl.on('line', handleChoice);
+export const startCLI = () => {
+    rl = initReadline();
+
+    // Handle process termination
+    process.on('SIGINT', cleanup);
+    process.on('SIGTERM', cleanup);
+    process.on('exit', cleanup);
+
+    displayMenu();
+    rl.on('line', handleChoice);
+};
+
+// Export for testing
+export { handleChoice, displayMenu, initReadline };
+
+export function cleanup() {
+    if (rl) {
+        // Only try to remove listeners if the method exists (handles both real and mock interfaces)
+        if (typeof rl.removeAllListeners === 'function') {
+            rl.removeAllListeners();
+        }
+        rl.close();
+        rl = null;
+    }
+    // Clean up SecureConsole as well
+    SecureConsole.cleanup();
+}
+
+// Only start CLI if running directly (not being imported)
+if (require.main === module) {
+    startCLI();
+}
